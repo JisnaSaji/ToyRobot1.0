@@ -1,56 +1,51 @@
-﻿using System;
-using System.IO;
-using System.Reflection.Metadata.Ecma335;
+using System;
 using System.Text.RegularExpressions;
-using System.Xml.Schema;
 
+// Interface class to declare all the main methods to be implemented the concrete classes
 public interface Robot
 {
-    public void Place(int NewX, int NewY, string NewF);
-    public void Move();
-    public void Left();
-    public void Right();
+    public bool Place(int NewX, int NewY, string NewF);
+    public bool Move();
+    public bool Left();
+    public bool Right();
     public void Report();
-    //public bool ValidateCoordinate(int X, int Y);
-
 }
-
+// Class ToyRobot implementing the interface Robot
 public class ToyRobot : Robot
 {
-    private int X { get; set; }                          //represent the x coodinate.
-    private int Y { get; set; }                          //repesent the y coordinate.
-    private string F { get; set; }                     //repesent the facing direction.
+    private int X { get; set; }                          // Represent the x coodinate.
+    private int Y { get; set; }                          // Repesent the y coordinate.
+    private string F { get; set; }                     // Repesent the facing direction.
 
-    private static readonly int XLimit = 5;
+    private readonly int XLimit;                      // Represent the maximum limit of the X-coordinate
 
-    private static readonly int YLimit = 5;
+    private readonly int YLimit;                     // Represent the maximum limit of the Y-coordinate
 
-
-    //constructor used to set the default location and the grid size of the ToyRobot.
-    public ToyRobot()                                 
+    // Constructor to set the grid size of the ToyRobot.
+    public ToyRobot(int XCord, int YCord)
     {
-        X = 0;
-        Y = 0;
-        F = "NORTH";
-        //this.XCord = XCord;
-        //this.YCord = YCord;
+        this.XLimit = XCord;
+        this.YLimit = YCord;
     }
-    public void Place(int NewX, int NewY, string NewF)
+
+    // Implementation of the Place method
+    public bool Place(int NewX, int NewY, string NewF)
     {
         if (ValidateCoordinate(NewX, NewY) && ValidateDirection(NewF))
         {
             this.X = NewX;
             this.Y = NewY;
             this.F = NewF;
-            Console.WriteLine("Placed Toy Robot at the new location");
+            return true;
         }
         else
         {
-            Console.WriteLine("Invalid PLACE command. Toy Robot not placed.");
+            return false;
         }
     }
 
-    public void Move()
+    // Implementation of the Move method
+    public bool Move()
     {
         var NewX = this.X;
         var NewY = this.Y;
@@ -73,15 +68,17 @@ public class ToyRobot : Robot
         {
            this.X = NewX;
            this.Y = NewY;
+           return true;
         }
         else
         {
-            Console.WriteLine("Invalid MOVE command. Toy Robot did not move.");
+            return false;
         }
         
     }
 
-    public void Left()
+    // Implementation of the Left method
+    public bool Left()
     {
         switch (this.F)
         {
@@ -98,9 +95,11 @@ public class ToyRobot : Robot
                 this.F = "SOUTH";
                 break;
         }
+        return true;
     }
 
-    public void Right()
+    // Implementation of the Right method
+    public bool Right()
     {
         switch (this.F)
         {
@@ -117,63 +116,81 @@ public class ToyRobot : Robot
                 this.F = "NORTH";
                 break;
         }
+        return true;
     }
 
+    // Implementation of the Report method
     public void Report()
     {
         Console.WriteLine(this.X + "," + this.Y + "," + this.F);
     }
 
-    static bool ValidateCoordinate(int XCord, int YCord)
+    // Method to validate the coordinates of the grid
+    bool ValidateCoordinate(int XCord, int YCord)
     {
-        return XCord >= -5 && XCord <= XLimit && YCord >= -5 && YCord <= YLimit;
+        return XCord >= (XLimit * -1) && XCord <= XLimit && YCord >= (XLimit * -1) && YCord <= YLimit;
     }
 
-    static bool ValidateDirection(string Direction)
+    // Method to validate the direction given in the command
+    bool ValidateDirection(string Direction)
     {
         string[] validDirections = { "NORTH", "EAST", "SOUTH", "WEST" };
         return validDirections.Contains(Direction, StringComparer.OrdinalIgnoreCase);
     }
+
+    // Method to validate the PLACE command using the given regex
+    public bool IsValidPlaceCommand(string input)
+    {
+        string pattern = @"^(?i)PLACE\s+(?!-0)(-?[0-" + XLimit + "]+|0),(?!-0)(-?[0-" + YLimit + "]+|0),(EAST|WEST|NORTH|SOUTH)$";//@"^(?i)PLACE\s+(-?[0-9]|-?[1-9][0-9]?),(-?[0-9]|-?[1-9][0-9]?),(EAST|WEST|NORTH|SOUTH)$";
+        return Regex.IsMatch(input.ToUpper(), pattern);
+    }
 }
 
+// Main class of the program.
 class Program
 {
     static void Main(string[] args)
     {
-        ToyRobot Kay = new ToyRobot();
+        ToyRobot Kay = new ToyRobot(5,5);                // Initialize the ToyRobot with the grid size as X,Y Coordinates
 
-        Console.WriteLine("Hello, it's me, Kay, your ToyRobot1.0. I'm all set and ready to begin moving!\nMy coordinates are currently set to the default value (0,0) NORTH. \nPlease use PLACE X,Y,F to change my coordinates.\n");
-        Console.Write("Enter your commands:\n");
+        Console.WriteLine("Hello, it's me, Kay, your ToyRobot 1.0. I'm all set and ready to begin moving!\nPlease use 'PLACE X,Y,F' to set my coordinates.\n");
 
-        // Keep prompting the user for input continuously until a STOP command is entered.
         string command;
+        bool isFirstExecution = true;
+
+        // Keep prompting the user for input until a valid "PLACE" command is entered
+        Console.Write("Enter your commands:\n");
         do
         {
-            command = Console.ReadLine();   
+            if (!isFirstExecution)
+            {
+                Console.WriteLine("Please enter a valid PLACE Command");
+            }
+            command = Console.ReadLine();
+            isFirstExecution = false;
+        } while (!Kay.IsValidPlaceCommand(command));
+
+        // Keep prompting the user for input continuously until a STOP command is entered.
+        while (!string.Equals(command, "STOP", StringComparison.OrdinalIgnoreCase))
+        {
             ProcessCommand(command);
+            command = Console.ReadLine();
+        }
 
-
-        } while (!string.Equals(command, "STOP", StringComparison.OrdinalIgnoreCase));
-
-
-        //call the method corresponding to the command.
+        // This method calls the method corresponding to the given command.
         void ProcessCommand(string command)
         {
-            //regex used to validate the place command
-            string pattern = @"^PLACE\s+(-?[1-9]\d*),(-?[1-9]\d*),[A-Za-z]+$";
             string[] parts = new string[0];
-
             try
             {
-
                 if (!string.IsNullOrEmpty(command.Trim()))
                 {
                     // validate input and add methods
-                    if (command.StartsWith("PLACE", StringComparison.OrdinalIgnoreCase) && Regex.IsMatch(command.ToUpper(), pattern))
+                    if (command.StartsWith("PLACE", StringComparison.OrdinalIgnoreCase) && Kay.IsValidPlaceCommand(command))
                     {
                         parts = command.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
                         command = parts[0];
-                    } else if (command.StartsWith("PLACE", StringComparison.OrdinalIgnoreCase) && !Regex.IsMatch(command.ToUpper(), pattern))
+                    } else if(command.StartsWith("PLACE", StringComparison.OrdinalIgnoreCase) && !Kay.IsValidPlaceCommand(command))
                     {
                         Console.WriteLine("Please enter a valid PLACE command");
                         return;
@@ -185,16 +202,24 @@ class Program
                             if (parts.Length != 4)
                                 Console.WriteLine("Please enter a valid PLACE command");
                             else
-                                Kay.Place(int.Parse(parts[1]), int.Parse(parts[2]), parts[3].ToUpper());
+                                if (Kay.Place(int.Parse(parts[1]), int.Parse(parts[2]), parts[3].ToUpper()))
+                                    Console.WriteLine("Toy Robot has been set  to this location");
+                                else
+                                Console.WriteLine("Toy Robot has not been placed. Invalid PLACE Command.");
                             break;
                         case "MOVE":
-                            Kay.Move();
+                            if (Kay.Move())
+                                Console.WriteLine("Toy Robot has been moved.");
+                            else
+                                Console.WriteLine("Toy Robot has reached its boundary X or Y Coordinates.");
                             break;
                         case "LEFT":
-                            Kay.Left();
+                            if (Kay.Left())
+                                Console.WriteLine("Successfully rotated the facing direction.");
                             break;
                         case "RIGHT":
-                            Kay.Right();
+                            if (Kay.Right())
+                                Console.WriteLine("Successfully rotated the facing direction.");
                             break;
                         case "REPORT":
                             Kay.Report();
@@ -203,10 +228,10 @@ class Program
                             Console.WriteLine("Ending operation.");
                             break;
                         default:
-                            Console.WriteLine("Invalid command ");
+                            Console.WriteLine("Invalid command");
                             break;
                     }
-                } else { Console.WriteLine("Invalid command"); }
+                } else { Console.WriteLine("Command not found"); }
             }
             catch (IndexOutOfRangeException ex)
             {
@@ -219,9 +244,7 @@ class Program
             finally
             {
                 parts = null;
-                pattern = null;
             }
         }
     } 
 }
-
